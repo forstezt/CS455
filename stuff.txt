@@ -1,0 +1,77 @@
+//Generate framebuffer object
+//create FBO
+//bind FBO as drawing surface
+//create texture to capture RGBA
+//create depth buffer to do z-buffer algorithm
+//hook up texture and depth buffer to FBO
+//restore default framebuffer
+
+glGenFramebuffers(1, &framebuffer_id);
+glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer_id);
+
+glActivateTexture(GL_TEXTURE1);
+glGenTextures(1, &screenshot_id);
+glBindTexture(GL_TEXTURE_2D, screenshot_id);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 512, 512, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+
+GLuint, depth_rid;
+glGenRenderBuffer(1, &depth_rid);
+glBindRenderbuffer(GL_RENDERBUFFER, depth_rid);
+glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 512, 512);
+
+glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, screenshot_id, 0);
+glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rid);
+
+glBindFrameBuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+
+
+
+
+
+
+OnDraw() {
+
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer_id);
+	
+	BaseRenderer::OnDraw();
+	
+	glViewport(0, 0, 512, 512);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	
+	Matrix4 projection = Matrix4::GetPerspective(45.0f, 1.0f, 0.01f, 1000.0f);
+
+	//don't forget to set the projection matrix as a uniform for the shaders!
+	
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+	
+}
+
+
+
+
+
+
+else if (key == 't') {
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, screenshot_id);
+	unsigned char pixels[512 * 512 * 4];
+	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+	std::ofstream out("screenshot.ppm");
+	out << "P3" << std::endl;
+	out << "512, 512" << std::endl;
+	out << "255" << std:endl;
+	for(int r = 511; r >= 0; --r) {
+		for(int c = 0; c < 512; ++c) {
+			unsigned char* pixel = pixels + (r * 512 + c) *4;
+			out << (int)pixel[0] << " " << (int)pixel[1] << " " << (int)pixel[2] << std::endl;
+			pixel += 4;
+		}
+	}
+	
+	out.close();
+}
